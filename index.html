@@ -816,6 +816,29 @@ document.addEventListener('keydown', (e) => {
   spawnDog();
 });
 
+// Swipe detection for touch scene switching
+let touchStartX = null;
+document.addEventListener('touchstart', (e) => {
+  touchStartX = e.touches[0].clientX;
+}, { passive: true });
+
+document.addEventListener('touchend', (e) => {
+  if (touchStartX === null) return;
+  const dx = e.changedTouches[0].clientX - touchStartX;
+  touchStartX = null;
+  if (Math.abs(dx) > 50) {
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    promptEl.classList.add('hidden');
+    if (dx < 0) {
+      currentSceneIdx = (currentSceneIdx + 1) % SCENES.length;
+    } else {
+      currentSceneIdx = (currentSceneIdx - 1 + SCENES.length) % SCENES.length;
+    }
+    switchScene(currentSceneIdx);
+    return;
+  }
+});
+
 document.addEventListener('pointerdown', (e) => {
   if (e.target.id === 'sound-toggle') return;
   if (audioCtx.state === 'suspended') audioCtx.resume();
