@@ -1,0 +1,831 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Doggy Walk!</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    overflow: hidden;
+    width: 100vw;
+    height: 100vh;
+    font-family: 'Comic Sans MS', 'Chalkboard SE', cursive;
+    cursor: default;
+    user-select: none;
+  }
+
+  #scene {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    transition: background 0.8s ease;
+  }
+
+  /* Sun */
+  #sun {
+    position: absolute;
+    top: 40px; right: 120px;
+    width: 80px; height: 80px;
+    background: radial-gradient(circle, #FFD700, #FFA500);
+    border-radius: 50%;
+    box-shadow: 0 0 40px 15px rgba(255,215,0,0.4);
+  }
+
+  /* Clouds */
+  .cloud {
+    position: absolute;
+    background: white;
+    border-radius: 50%;
+    opacity: 0.85;
+    animation: drift linear infinite;
+  }
+  @keyframes drift {
+    from { transform: translateX(-200px); }
+    to   { transform: translateX(calc(100vw + 200px)); }
+  }
+
+  /* Scene decorations */
+  .scene-obj { position: absolute; pointer-events: none; }
+
+  /* Buildings */
+  .building { position: absolute; bottom: 38%; }
+  .building-body { position: relative; }
+  .building-roof {
+    width: 0; height: 0;
+    border-left: 48px solid transparent;
+    border-right: 48px solid transparent;
+    position: absolute;
+    top: -30px; left: -8px;
+  }
+  .building-door {
+    width: 16px; height: 24px;
+    background: #5C3317;
+    position: absolute;
+    bottom: 0; left: 50%;
+    transform: translateX(-50%);
+    border-radius: 3px 3px 0 0;
+  }
+  .building-window {
+    width: 14px; height: 14px;
+    background: #ADE8F4;
+    border: 2px solid #555;
+    position: absolute;
+    border-radius: 2px;
+  }
+
+  /* Skyscraper windows */
+  .sky-win {
+    width: 8px; height: 10px;
+    position: absolute;
+    border-radius: 1px;
+  }
+
+  /* Trees */
+  .tree { position: absolute; bottom: 35%; }
+  .tree-trunk {
+    width: 12px; height: 40px;
+    background: #8B4513;
+    margin: 0 auto;
+    border-radius: 2px;
+  }
+  .tree-top {
+    width: 50px; height: 55px;
+    border-radius: 50%;
+    margin: 0 auto;
+    position: relative;
+    top: 5px;
+  }
+
+  /* Palm */
+  .palm { position: absolute; bottom: 35%; }
+  .palm-fronds {
+    font-size: 40px;
+    position: relative;
+    top: 8px; left: -12px;
+  }
+
+  /* Street lines */
+  .street-line {
+    position: absolute;
+    top: 75%;
+    width: 40px; height: 4px;
+    border-radius: 2px;
+  }
+
+  /* Town sign */
+  .town-sign {
+    position: absolute;
+    bottom: 22%; left: 40px;
+    color: white;
+    padding: 6px 14px;
+    border-radius: 4px;
+    font-size: 13px;
+    font-weight: bold;
+    border: 2px solid #c9a54e;
+    transform: rotate(-2deg);
+    letter-spacing: 1px;
+    z-index: 5;
+  }
+
+  /* Fire hydrant */
+  .hydrant {
+    position: absolute;
+    bottom: 20%;
+    width: 18px; height: 28px;
+    background: #CC0000;
+    border-radius: 4px 4px 2px 2px;
+    z-index: 5;
+  }
+  .hydrant::before {
+    content: '';
+    position: absolute;
+    top: 6px; left: -4px;
+    width: 26px; height: 6px;
+    background: #CC0000;
+    border-radius: 3px;
+  }
+  .hydrant::after {
+    content: '';
+    position: absolute;
+    top: -4px; left: 4px;
+    width: 10px; height: 6px;
+    background: #CC0000;
+    border-radius: 3px 3px 0 0;
+  }
+
+  /* === DOGS === */
+  .dog {
+    position: absolute;
+    font-size: 48px;
+    transition: none;
+    z-index: 10;
+    filter: drop-shadow(1px 2px 2px rgba(0,0,0,0.3));
+    pointer-events: none;
+  }
+  .dog.walking {
+    animation: bounce 0.35s ease-in-out infinite alternate;
+  }
+  @keyframes bounce {
+    0%   { transform: translateY(0); }
+    100% { transform: translateY(-6px); }
+  }
+  .dog.flipped { transform: scaleX(-1); }
+  .dog.flipped.walking {
+    animation: bounceFlip 0.35s ease-in-out infinite alternate;
+  }
+  @keyframes bounceFlip {
+    0%   { transform: scaleX(-1) translateY(0); }
+    100% { transform: scaleX(-1) translateY(-6px); }
+  }
+
+  /* Bark bubble */
+  .bark-bubble {
+    position: absolute;
+    top: -36px; left: 50%;
+    transform: translateX(-50%);
+    background: white;
+    border: 2px solid #333;
+    border-radius: 12px;
+    padding: 3px 10px;
+    font-size: 14px;
+    font-weight: bold;
+    white-space: nowrap;
+    animation: popIn 0.3s ease-out;
+    pointer-events: none;
+    z-index: 20;
+  }
+  .bark-bubble::after {
+    content: '';
+    position: absolute;
+    bottom: -8px; left: 50%;
+    transform: translateX(-50%);
+    width: 0; height: 0;
+    border-left: 6px solid transparent;
+    border-right: 6px solid transparent;
+    border-top: 8px solid #333;
+  }
+  @keyframes popIn {
+    0%   { transform: translateX(-50%) scale(0); }
+    100% { transform: translateX(-50%) scale(1); }
+  }
+
+  /* Pee puddle */
+  .pee {
+    position: absolute;
+    width: 16px; height: 8px;
+    background: radial-gradient(ellipse, #f0e060, #d4c030);
+    border-radius: 50%;
+    opacity: 0.7;
+    z-index: 3;
+    animation: puddleGrow 0.6s ease-out forwards;
+    pointer-events: none;
+  }
+  @keyframes puddleGrow {
+    0%   { transform: scale(0.3); opacity: 0; }
+    100% { transform: scale(1); opacity: 0.7; }
+  }
+
+  /* Spawn flash */
+  .spawn-flash {
+    position: absolute;
+    width: 60px; height: 60px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(255,255,100,0.8), transparent 70%);
+    animation: flash 0.5s ease-out forwards;
+    pointer-events: none;
+    z-index: 9;
+  }
+  @keyframes flash {
+    0%   { transform: scale(0.2); opacity: 1; }
+    100% { transform: scale(2.5); opacity: 0; }
+  }
+
+  /* Prompt */
+  #prompt {
+    position: fixed;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    z-index: 100;
+    pointer-events: none;
+    animation: pulse 1.5s ease-in-out infinite;
+  }
+  #prompt h1 {
+    font-size: 42px;
+    color: #fff;
+    text-shadow: 2px 2px 6px rgba(0,0,0,0.5);
+    margin-bottom: 10px;
+  }
+  #prompt p {
+    font-size: 22px;
+    color: #ffe;
+    text-shadow: 1px 1px 4px rgba(0,0,0,0.5);
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50%      { opacity: 0.6; }
+  }
+  #prompt.hidden { display: none; }
+
+  /* HUD */
+  #counter {
+    position: fixed;
+    top: 12px; left: 12px;
+    background: rgba(0,0,0,0.45);
+    color: #fff;
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 18px;
+    z-index: 50;
+    pointer-events: none;
+  }
+  #sound-toggle {
+    position: fixed;
+    top: 12px; right: 12px;
+    background: rgba(0,0,0,0.45);
+    color: #fff;
+    border: none;
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 18px;
+    z-index: 50;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  #sound-toggle:hover { background: rgba(0,0,0,0.6); }
+
+  #scene-name {
+    position: fixed;
+    bottom: 12px; left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0,0,0,0.5);
+    color: #fff;
+    padding: 6px 18px;
+    border-radius: 20px;
+    font-size: 16px;
+    z-index: 50;
+    pointer-events: none;
+    white-space: nowrap;
+  }
+
+  /* ===== PIZZA RAIN ===== */
+  .pizza {
+    position: fixed;
+    font-size: 40px;
+    z-index: 80;
+    pointer-events: none;
+    animation: pizzaFall linear forwards;
+  }
+  @keyframes pizzaFall {
+    0%   { transform: translateY(-60px) rotate(0deg); opacity: 1; }
+    90%  { opacity: 1; }
+    100% { transform: translateY(105vh) rotate(720deg); opacity: 0.8; }
+  }
+
+  /* ===== WIN SCREEN ===== */
+  #win-screen {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    display: none;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    z-index: 200;
+    pointer-events: none;
+  }
+  #win-screen.active { display: flex; }
+  #win-text {
+    font-size: 120px;
+    font-weight: bold;
+    color: #FFD700;
+    text-shadow: 4px 4px 0px #FF6B00, 8px 8px 0px rgba(0,0,0,0.3);
+    animation: winPulse 0.8s ease-in-out infinite alternate;
+    letter-spacing: 10px;
+  }
+  #win-sub {
+    font-size: 32px;
+    color: #fff;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+    margin-top: 20px;
+  }
+  @keyframes winPulse {
+    0%   { transform: scale(1) rotate(-2deg); }
+    100% { transform: scale(1.08) rotate(2deg); }
+  }
+</style>
+</head>
+<body>
+
+<div id="scene"><div id="sun"></div></div>
+
+<div id="prompt">
+  <h1>🐶 Doggy Walk! 🐶</h1>
+  <p>Press any key to add a dog!<br>◀ ▶ change scene</p>
+</div>
+
+<div id="counter">🐕 Dogs: <span id="dog-count">0</span> / 100</div>
+<button id="sound-toggle">🔊 Sound: ON</button>
+<div id="scene-name">📍 Montclair, NJ</div>
+
+<div id="win-screen">
+  <div id="win-text">YOU WIN!</div>
+  <div id="win-sub">🍕 100 dogs walked! 🍕</div>
+</div>
+
+<script>
+// ========== SCENE DEFINITIONS ==========
+const SCENES = [
+  {
+    name: '📍 Montclair, NJ',
+    gradient: 'linear-gradient(180deg,#87CEEB 0%,#a8d8ea 40%,#c9e4ca 55%,#6b8e23 58%,#556b2f 62%,#90a955 65%,#8B7355 67%,#a0926b 70%,#555 72%,#444 75%,#555 78%,#a0926b 80%,#4a7c59 83%,#3d6b4e 100%)',
+    signText: 'WELCOME TO MONTCLAIR, NJ', signColor: '#2E5339',
+    lineColor: '#FFD700',
+    treeColor: 'radial-gradient(ellipse,#2d6a1e,#1a4d12)',
+    build: buildMontclair,
+  },
+  {
+    name: '📍 New York City',
+    gradient: 'linear-gradient(180deg,#6B8CA8 0%,#8FAABD 30%,#A5AFBA 45%,#7A7A7A 50%,#5A5A5A 55%,#666 60%,#555 65%,#444 68%,#333 72%,#555 76%,#333 80%,#444 85%,#383838 100%)',
+    signText: 'NEW YORK CITY', signColor: '#1a1a6e',
+    lineColor: '#FFD700',
+    treeColor: 'radial-gradient(ellipse,#3a7a2e,#1f5516)',
+    build: buildNYC,
+  },
+  {
+    name: '📍 San Diego, CA',
+    gradient: 'linear-gradient(180deg,#2BC0E3 0%,#55D0F0 30%,#87DFFA 45%,#e8d5a0 55%,#dcc07a 60%,#c8a84c 62%,#c2a355 66%,#d4b87a 70%,#555 74%,#444 77%,#555 80%,#d4b87a 83%,#e8d5a0 86%,#44aa77 90%,#3d9b6a 100%)',
+    signText: 'WELCOME TO SAN DIEGO', signColor: '#1a5276',
+    lineColor: '#FFD700',
+    treeColor: 'radial-gradient(ellipse,#5aaa3e,#2d7a1e)',
+    build: buildSanDiego,
+  },
+  {
+    name: '📍 Lisbon, Portugal',
+    gradient: 'linear-gradient(180deg,#5BA3D9 0%,#7AB8E0 30%,#A5CCE8 42%,#E8D1A0 50%,#D4B87A 56%,#C4A060 62%,#B8956E 66%,#9E8060 70%,#706050 74%,#555 78%,#706050 82%,#B8956E 85%,#C4A060 88%,#3d8b6a 92%,#2d7a55 100%)',
+    signText: 'BEM-VINDO A LISBOA', signColor: '#2E4057',
+    lineColor: '#ddd',
+    treeColor: 'radial-gradient(ellipse,#4a8a2e,#2d6a1e)',
+    build: buildLisbon,
+  },
+];
+
+let currentSceneIdx = 0;
+let gameWon = false;
+
+// ========== DOG CONFIG ==========
+const DOG_BREEDS = [
+  { emoji: '🐕' }, { emoji: '🐩' }, { emoji: '🐕‍🦺' },
+  { emoji: '🦮' }, { emoji: '🐶' }, { emoji: '🐾' },
+];
+const BARK_SOUNDS = ['WOOF!','ARF!','BARK!','YAP!','RUFF!','BOW WOW!','AWOO!','BORK!'];
+
+const scene      = document.getElementById('scene');
+const promptEl   = document.getElementById('prompt');
+const dogCountEl = document.getElementById('dog-count');
+const sceneNameEl= document.getElementById('scene-name');
+const winScreen  = document.getElementById('win-screen');
+let dogCount = 0;
+const dogs = [];
+
+// ========== HELPERS ==========
+function addClouds(n) {
+  for (let i = 0; i < n; i++) {
+    const c = document.createElement('div');
+    c.className = 'cloud scene-obj';
+    const w = 60 + Math.random() * 80;
+    c.style.width = w + 'px';
+    c.style.height = (w * 0.4) + 'px';
+    c.style.top = (20 + Math.random() * 80) + 'px';
+    c.style.left = (Math.random() * 100) + '%';
+    c.style.animationDuration = (30 + Math.random() * 40) + 's';
+    c.style.animationDelay = (-Math.random() * 50) + 's';
+    scene.appendChild(c);
+  }
+}
+function addLines(color) {
+  for (let i = 0; i < 15; i++) {
+    const l = document.createElement('div');
+    l.className = 'street-line scene-obj';
+    l.style.left = (i * 7 + 2) + '%';
+    l.style.background = color;
+    scene.appendChild(l);
+  }
+}
+function addHydrants(pcts) {
+  pcts.forEach(p => {
+    const h = document.createElement('div');
+    h.className = 'hydrant scene-obj';
+    h.style.left = p + '%';
+    scene.appendChild(h);
+  });
+}
+function addSign(text, bg) {
+  const s = document.createElement('div');
+  s.className = 'town-sign scene-obj';
+  s.style.background = bg;
+  s.textContent = text;
+  scene.appendChild(s);
+}
+function addTrees(pcts, grad) {
+  pcts.forEach(p => {
+    const t = document.createElement('div');
+    t.className = 'tree scene-obj';
+    t.style.left = p + '%';
+    t.style.transform = `scale(${0.7 + Math.random() * 0.5})`;
+    t.innerHTML = `<div class="tree-top" style="background:${grad}"></div><div class="tree-trunk"></div>`;
+    scene.appendChild(t);
+  });
+}
+function addPalms(pcts) {
+  pcts.forEach(p => {
+    const t = document.createElement('div');
+    t.className = 'palm scene-obj';
+    t.style.left = p + '%';
+    t.style.transform = `scale(${0.7 + Math.random() * 0.4})`;
+    t.innerHTML = '<div class="palm-fronds">🌴</div>';
+    scene.appendChild(t);
+  });
+}
+
+// ========== MONTCLAIR ==========
+function buildMontclair(s) {
+  addClouds(5);
+  const cols = [
+    {b:'#D2691E',r:'#8B0000'},{b:'#BC8F8F',r:'#483D8B'},
+    {b:'#F5DEB3',r:'#2F4F4F'},{b:'#DEB887',r:'#800020'},
+    {b:'#FAEBD7',r:'#3B3B3B'},{b:'#C4A882',r:'#654321'},
+    {b:'#E8D5B7',r:'#4A4A4A'},{b:'#B8860B',r:'#2B2B2B'},
+  ];
+  [5,15,28,42,55,68,78,90].forEach((p,i) => {
+    const el = document.createElement('div');
+    el.className = 'building scene-obj';
+    el.style.left = p + '%';
+    el.style.transform = `scale(${0.7+Math.random()*0.6})`;
+    el.innerHTML = `<div class="building-body" style="background:${cols[i].b};width:80px;height:55px">
+      <div class="building-roof" style="border-bottom:35px solid ${cols[i].r}"></div>
+      <div class="building-door"></div>
+      <div class="building-window" style="left:8px;top:10px"></div>
+      <div class="building-window" style="right:8px;left:auto;top:10px"></div></div>`;
+    scene.appendChild(el);
+  });
+  addTrees([2,10,22,35,48,60,72,85,95], s.treeColor);
+  addLines(s.lineColor);
+  addHydrants([20,65]);
+  addSign(s.signText, s.signColor);
+}
+
+// ========== NYC ==========
+function buildNYC(s) {
+  addClouds(3);
+  const bd = [
+    {p:3,w:50,h:180,c:'#555'},{p:10,w:40,h:240,c:'#4a4a5a'},
+    {p:17,w:55,h:200,c:'#606070'},{p:25,w:35,h:280,c:'#3a3a4a'},
+    {p:32,w:60,h:160,c:'#505060'},{p:40,w:45,h:260,c:'#444455'},
+    {p:48,w:50,h:220,c:'#5a5a6a'},{p:55,w:38,h:300,c:'#383848'},
+    {p:63,w:55,h:190,c:'#4e4e5e'},{p:70,w:42,h:250,c:'#454555'},
+    {p:78,w:60,h:170,c:'#525262'},{p:85,w:35,h:230,c:'#404050'},
+    {p:93,w:48,h:210,c:'#484858'},
+  ];
+  bd.forEach(b => {
+    const el = document.createElement('div');
+    el.className = 'scene-obj';
+    el.style.cssText = `position:absolute;bottom:42%;left:${b.p}%;width:${b.w}px;height:${b.h}px;background:${b.c};`;
+    let w = '';
+    const cols = Math.floor(b.w/14), rows = Math.floor(b.h/18);
+    for (let r = 0; r < rows; r++)
+      for (let c = 0; c < cols; c++) {
+        const lit = Math.random() > 0.3 ? '#ffffaa' : '#888';
+        w += `<div class="sky-win" style="left:${5+c*14}px;top:${5+r*18}px;background:${lit}"></div>`;
+      }
+    el.innerHTML = w;
+    scene.appendChild(el);
+  });
+  [15,45,75].forEach(p => {
+    const c = document.createElement('div');
+    c.className = 'scene-obj';
+    c.style.cssText = `position:absolute;bottom:18%;left:${p}%;font-size:28px;`;
+    c.textContent = '🚕';
+    scene.appendChild(c);
+  });
+  const statue = document.createElement('div');
+  statue.className = 'scene-obj';
+  statue.style.cssText = 'position:absolute;top:15%;right:60px;font-size:50px;opacity:0.5;';
+  statue.textContent = '🗽';
+  scene.appendChild(statue);
+  addLines(s.lineColor);
+  addHydrants([25,60,85]);
+  addSign(s.signText, s.signColor);
+}
+
+// ========== SAN DIEGO ==========
+function buildSanDiego(s) {
+  addClouds(2);
+  const cols = ['#E8D5B7','#F5E6D0','#FFF8DC','#FAEBD7','#FFE4C4','#FFDAB9'];
+  [8,22,38,55,70,85].forEach((p,i) => {
+    const el = document.createElement('div');
+    el.className = 'building scene-obj';
+    el.style.left = p + '%';
+    el.style.transform = `scale(${0.7+Math.random()*0.4})`;
+    el.innerHTML = `<div class="building-body" style="background:${cols[i]};width:70px;height:45px;border-radius:3px">
+      <div class="building-roof" style="border-bottom:25px solid #C84B31"></div>
+      <div class="building-door"></div>
+      <div class="building-window" style="left:8px;top:8px"></div>
+      <div class="building-window" style="right:8px;left:auto;top:8px"></div></div>`;
+    scene.appendChild(el);
+  });
+  addPalms([3,15,30,45,60,75,90]);
+  const surf = document.createElement('div');
+  surf.className = 'scene-obj';
+  surf.style.cssText = 'position:absolute;bottom:18%;right:80px;font-size:32px;transform:rotate(15deg);';
+  surf.textContent = '🏄';
+  scene.appendChild(surf);
+  document.getElementById('sun').style.boxShadow = '0 0 60px 25px rgba(255,215,0,0.5)';
+  addLines(s.lineColor);
+  addSign(s.signText, s.signColor);
+}
+
+// ========== LISBON ==========
+function buildLisbon(s) {
+  addClouds(4);
+  const facades = ['#E74C3C','#F39C12','#2ECC71','#3498DB','#9B59B6','#E67E22','#1ABC9C','#E84393','#F1C40F'];
+  [3,13,24,35,46,57,68,80,91].forEach((p,i) => {
+    const el = document.createElement('div');
+    el.className = 'scene-obj';
+    const h = 50 + Math.random()*40, w = 45 + Math.random()*20;
+    el.style.cssText = `position:absolute;bottom:38%;left:${p}%;width:${w}px;height:${h}px;background:${facades[i%facades.length]};border:2px solid rgba(0,0,0,0.15);border-radius:2px 2px 0 0;`;
+    let html = '';
+    const rows = Math.floor(h/22);
+    for (let r = 0; r < rows; r++) {
+      html += `<div style="position:absolute;top:${6+r*22}px;left:${w/2-12}px;width:10px;height:14px;background:#ADE8F4;border:2px solid #333;border-radius:6px 6px 0 0"></div>`;
+      html += `<div style="position:absolute;top:${6+r*22}px;left:${w/2+4}px;width:10px;height:14px;background:#ADE8F4;border:2px solid #333;border-radius:6px 6px 0 0"></div>`;
+    }
+    el.innerHTML = html;
+    scene.appendChild(el);
+  });
+  const tram = document.createElement('div');
+  tram.className = 'scene-obj';
+  tram.style.cssText = 'position:absolute;bottom:19%;left:50%;font-size:30px;';
+  tram.textContent = '🚋';
+  scene.appendChild(tram);
+  addTrees([8,40,70,92], s.treeColor);
+  addLines(s.lineColor);
+  addSign(s.signText, s.signColor);
+}
+
+// ========== SWITCH SCENE ==========
+function switchScene(idx) {
+  const s = SCENES[idx];
+  scene.querySelectorAll('.scene-obj').forEach(el => el.remove());
+  scene.style.background = s.gradient;
+  document.getElementById('sun').style.boxShadow = '0 0 40px 15px rgba(255,215,0,0.4)';
+  s.build(s);
+  sceneNameEl.textContent = s.name;
+}
+
+// ========== AUDIO ==========
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+let soundEnabled = true;
+
+document.getElementById('sound-toggle').addEventListener('click', (e) => {
+  e.stopPropagation();
+  soundEnabled = !soundEnabled;
+  e.target.textContent = soundEnabled ? '🔊 Sound: ON' : '🔇 Sound: OFF';
+});
+
+function playBark() {
+  if (!soundEnabled) return;
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.connect(gain); gain.connect(audioCtx.destination);
+  const f = 200 + Math.random() * 300;
+  osc.frequency.setValueAtTime(f, audioCtx.currentTime);
+  osc.frequency.exponentialRampToValueAtTime(f*1.6, audioCtx.currentTime+0.05);
+  osc.frequency.exponentialRampToValueAtTime(f*0.7, audioCtx.currentTime+0.15);
+  osc.type = 'sawtooth';
+  gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime+0.2);
+  osc.start(audioCtx.currentTime);
+  osc.stop(audioCtx.currentTime+0.2);
+}
+
+function playWinSound() {
+  if (!soundEnabled) return;
+  [523,659,784,1047].forEach((freq,i) => {
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.connect(gain); gain.connect(audioCtx.destination);
+    osc.frequency.value = freq;
+    osc.type = 'triangle';
+    const t = audioCtx.currentTime + i * 0.15;
+    gain.gain.setValueAtTime(0.2, t);
+    gain.gain.exponentialRampToValueAtTime(0.01, t + 0.4);
+    osc.start(t);
+    osc.stop(t + 0.4);
+  });
+}
+
+// ========== SPAWN DOG ==========
+function spawnDog() {
+  if (gameWon) return;
+  const breed = DOG_BREEDS[Math.floor(Math.random() * DOG_BREEDS.length)];
+  const x = Math.random() * (window.innerWidth - 60);
+  const y = window.innerHeight * 0.55 + Math.random() * (window.innerHeight * 0.38);
+  const angle = Math.random() * Math.PI * 2;
+  const speed = 0.6 + Math.random() * 1.2;
+  const vx = Math.cos(angle) * speed;
+  const vy = Math.sin(angle) * speed * 0.3;
+
+  const dog = document.createElement('div');
+  dog.className = 'dog walking';
+  dog.textContent = breed.emoji;
+  dog.style.left = x + 'px';
+  dog.style.top = y + 'px';
+  dog.style.fontSize = (36 + Math.random() * 24) + 'px';
+  if (vx < 0) dog.classList.add('flipped');
+  scene.appendChild(dog);
+
+  const flash = document.createElement('div');
+  flash.className = 'spawn-flash';
+  flash.style.left = (x-10)+'px';
+  flash.style.top = (y-10)+'px';
+  scene.appendChild(flash);
+  setTimeout(() => flash.remove(), 500);
+
+  dogs.push({
+    el: dog, x, y, vx, vy,
+    barkTimer: 2000+Math.random()*5000,
+    peeTimer: 6000+Math.random()*12000,
+    dirChangeTimer: 3000+Math.random()*4000,
+    lastTime: performance.now(),
+  });
+  dogCount++;
+  dogCountEl.textContent = dogCount;
+
+  if (dogCount >= 100) triggerWin();
+}
+
+// ========== BARK / PEE ==========
+function doBark(dog) {
+  playBark();
+  const b = document.createElement('div');
+  b.className = 'bark-bubble';
+  b.textContent = BARK_SOUNDS[Math.floor(Math.random()*BARK_SOUNDS.length)];
+  dog.el.appendChild(b);
+  setTimeout(() => b.remove(), 1200);
+}
+
+function doPee(dog) {
+  const p = document.createElement('div');
+  p.className = 'pee';
+  const off = dog.el.classList.contains('flipped') ? 10 : -5;
+  p.style.left = (dog.x+off)+'px';
+  p.style.top = (dog.y+40)+'px';
+  scene.appendChild(p);
+  setTimeout(() => { p.style.transition='opacity 2s'; p.style.opacity='0'; setTimeout(()=>p.remove(),2000); }, 5000);
+  const ox = dog.vx, oy = dog.vy;
+  dog.vx = 0; dog.vy = 0;
+  dog.el.classList.remove('walking');
+  setTimeout(() => { dog.vx=ox; dog.vy=oy; dog.el.classList.add('walking'); }, 1200);
+}
+
+// ========== WIN ==========
+function triggerWin() {
+  gameWon = true;
+  playWinSound();
+  dogs.forEach(d => d.el.remove());
+  dogs.length = 0;
+  scene.querySelectorAll('.pee').forEach(p => p.remove());
+  winScreen.classList.add('active');
+  startPizzaRain();
+}
+
+function startPizzaRain() {
+  function drop() {
+    const p = document.createElement('div');
+    p.className = 'pizza';
+    p.textContent = '🍕';
+    p.style.left = (Math.random()*100)+'vw';
+    p.style.top = '-60px';
+    p.style.fontSize = (25+Math.random()*35)+'px';
+    const d = 2+Math.random()*3;
+    p.style.animationDuration = d+'s';
+    document.body.appendChild(p);
+    setTimeout(() => p.remove(), d*1000);
+  }
+  // Burst then continuous
+  let count = 0;
+  const burst = setInterval(() => {
+    for (let i = 0; i < 3; i++) drop();
+    count += 3;
+    if (count >= 150) {
+      clearInterval(burst);
+      setInterval(drop, 250);
+    }
+  }, 80);
+}
+
+// ========== GAME LOOP ==========
+function gameLoop(time) {
+  if (!gameWon) {
+    const W = window.innerWidth, H = window.innerHeight;
+    const minY = H*0.52, maxY = H*0.92;
+    dogs.forEach(dog => {
+      const dt = time - dog.lastTime;
+      dog.lastTime = time;
+      dog.x += dog.vx; dog.y += dog.vy;
+      if (dog.x < -10)   { dog.x=-10;  dog.vx=Math.abs(dog.vx); dog.el.classList.remove('flipped'); }
+      if (dog.x > W-30)  { dog.x=W-30; dog.vx=-Math.abs(dog.vx); dog.el.classList.add('flipped'); }
+      if (dog.y < minY)  { dog.y=minY; dog.vy=Math.abs(dog.vy); }
+      if (dog.y > maxY)  { dog.y=maxY; dog.vy=-Math.abs(dog.vy); }
+      dog.el.style.left = dog.x+'px';
+      dog.el.style.top  = dog.y+'px';
+      dog.barkTimer -= dt;
+      if (dog.barkTimer <= 0) { doBark(dog); dog.barkTimer = 3000+Math.random()*7000; }
+      dog.peeTimer -= dt;
+      if (dog.peeTimer <= 0)  { doPee(dog);  dog.peeTimer = 8000+Math.random()*15000; }
+      dog.dirChangeTimer -= dt;
+      if (dog.dirChangeTimer <= 0) {
+        const a = Math.random()*Math.PI*2, sp = 0.6+Math.random()*1.2;
+        dog.vx = Math.cos(a)*sp; dog.vy = Math.sin(a)*sp*0.3;
+        dog.el.classList.toggle('flipped', dog.vx < 0);
+        dog.dirChangeTimer = 3000+Math.random()*4000;
+      }
+    });
+  }
+  requestAnimationFrame(gameLoop);
+}
+
+// ========== INPUT ==========
+document.addEventListener('keydown', (e) => {
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  promptEl.classList.add('hidden');
+
+  if (e.key === 'ArrowLeft') {
+    currentSceneIdx = (currentSceneIdx - 1 + SCENES.length) % SCENES.length;
+    switchScene(currentSceneIdx);
+    return;
+  }
+  if (e.key === 'ArrowRight') {
+    currentSceneIdx = (currentSceneIdx + 1) % SCENES.length;
+    switchScene(currentSceneIdx);
+    return;
+  }
+  spawnDog();
+});
+
+document.addEventListener('pointerdown', (e) => {
+  if (e.target.id === 'sound-toggle') return;
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  promptEl.classList.add('hidden');
+  spawnDog();
+});
+
+// ========== INIT ==========
+switchScene(0);
+requestAnimationFrame(gameLoop);
+</script>
+</body>
+</html>
